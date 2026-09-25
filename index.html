@@ -61,6 +61,48 @@
   .tarot-text { line-height:1.55; opacity:0; max-height:0; overflow:hidden; transition:opacity .8s .5s, max-height .8s; }
   .tarot-text.show { opacity:1; max-height:400px; }
   .wish { margin-top:28px; text-align:center; font:500 20px/1.4 "Cormorant Garamond", serif; color:var(--accent); }
+  .portrait { position:relative; margin:-24px -16px 6px; aspect-ratio:16/9; overflow:hidden; border-radius:0 0 28px 28px;
+              box-shadow:0 12px 44px color-mix(in srgb, var(--accent) 35%, transparent); background:var(--bg); }
+  .portrait img { width:100%; height:100%; object-fit:cover; display:block;
+                  clip-path:circle(0% at 50% 45%); filter:blur(22px) saturate(0) brightness(1.7); }
+  .portrait img.show { animation:reveal 2.8s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes reveal { 55% { filter:blur(6px) saturate(.7) brightness(1.25); } to { clip-path:circle(85% at 50% 45%); filter:none; } }
+  .portrait::after { content:""; position:absolute; inset:0; pointer-events:none; opacity:0;
+                     background:linear-gradient(180deg, transparent 0, rgba(255,255,255,.55) 3%, transparent 9%); }
+  .portrait.printing::after { animation:scan 2.6s ease-in-out .2s forwards; }
+  @keyframes scan { from { opacity:1; transform:translateY(-12%); } to { opacity:0; transform:translateY(100%); } }
+  .portrait.done { animation:glow 1.2s ease-out forwards; }
+  @keyframes glow { to { box-shadow:0 0 0 2px var(--accent), 0 12px 60px color-mix(in srgb, var(--accent) 55%, transparent); } }
+  .shimmer { position:absolute; inset:0; display:grid; place-items:center; color:var(--accent);
+             font:500 20px "Cormorant Garamond", serif; background-size:200% 100%; animation:sh 1.6s linear infinite;
+             background-image:linear-gradient(110deg, var(--bg) 30%, color-mix(in srgb, var(--accent) 22%, var(--bg)) 50%, var(--bg) 70%); }
+  @keyframes sh { to { background-position:-200% 0; } }
+  /* живой фон: две туманности медленно плывут */
+  body::before, body::after { content:""; position:fixed; z-index:0; width:70vmax; height:70vmax; border-radius:50%;
+    filter:blur(80px); opacity:.35; pointer-events:none; animation:drift 26s ease-in-out infinite alternate; }
+  body::before { background:var(--accent); top:-30vmax; left:-25vmax; }
+  body::after { background:var(--bg); bottom:-35vmax; right:-30vmax; opacity:.8; animation-duration:34s; }
+  @keyframes drift { to { transform:translate(12vmax, 10vmax) scale(1.15); } }
+  /* карточки сфер: светящаяся переливающаяся рамка и большая иконка */
+  .card { border:1.5px solid transparent; position:relative;
+    background:linear-gradient(160deg, rgba(20,10,40,.85), rgba(10,5,25,.9)) padding-box,
+               conic-gradient(from var(--a, 0deg), var(--accent), transparent 30%, var(--accent) 60%, transparent 85%, var(--accent)) border-box;
+    animation:spinborder 8s linear infinite; box-shadow:0 8px 30px rgba(0,0,0,.35); }
+  @property --a { syntax:"<angle>"; inherits:false; initial-value:0deg; }
+  @keyframes spinborder { to { --a:360deg; } }
+  .card .ico { font-size:40px; display:block; margin-bottom:6px; filter:drop-shadow(0 0 12px var(--accent)); }
+  /* заголовки разделов с орнаментом */
+  h2 { display:flex; align-items:center; gap:10px; }
+  h2::before, h2::after { content:""; flex:1; height:1px; background:linear-gradient(90deg, transparent, var(--accent), transparent); }
+  /* появление при прокрутке */
+  .rv { opacity:0; transform:translateY(24px) scale(.98); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1); }
+  .rv.in { opacity:1; transform:none; }
+  /* карта Таро «дышит» и мерцает, пока закрыта */
+  .tarot:not(.open) .tarot-in { animation:float 3.2s ease-in-out infinite; }
+  @keyframes float { 50% { transform:translateY(-8px) rotateZ(-1.5deg); } }
+  .back { box-shadow:0 0 30px color-mix(in srgb, var(--accent) 45%, transparent) inset, 0 0 24px color-mix(in srgb, var(--accent) 40%, transparent); }
+  .wish { animation:breathe 3.5s ease-in-out infinite; }
+  @keyframes breathe { 50% { text-shadow:0 0 22px var(--accent); } }
 </style>
 </head>
 <body>
@@ -126,6 +168,17 @@ function typewrite(el, text) {
   setTimeout(step, 1400);
 }
 
+function portrait(url, tries = 0) { // GitHub Pages публикует картинку ~1 мин — ждём и повторяем
+  const box = document.getElementById("portrait"), img = new Image();
+  img.onload = () => {
+    box.innerHTML = ""; box.appendChild(img); box.classList.add("printing");
+    requestAnimationFrame(() => img.classList.add("show")); haptic("medium");
+    setTimeout(() => box.classList.add("done"), 2800);
+  };
+  img.onerror = () => { if (tries < 20) setTimeout(() => portrait(url, tries + 1), 6000); else box.remove(); };
+  img.src = url + (tries ? "?t=" + tries : "");
+}
+
 function render(d) {
   const [bg, bg2, accent] = PALETTES[d.v] || PALETTES[1];
   const r = document.documentElement.style;
@@ -133,6 +186,7 @@ function render(d) {
   if (tg) { tg.setBackgroundColor(bg2); tg.setHeaderColor(bg2); }
   const delay = s => `style="animation-delay:${s}s"`;
   document.getElementById("app").innerHTML = `
+    ${d.p ? '<div class="portrait" id="portrait"><div class="shimmer">✨ Ваш образ проявляється…</div></div>' : ""}
     <div class="hero">${mandala(d.n, accent)}<div><div class="name fade">ELVIRA</div><div class="leo fade" ${delay(.4)}>♌</div></div></div>
     <div class="date fade" ${delay(.6)}>${esc(d.date_ru)} · ${esc(d.weekday_ru)}, день ${esc(d.planet_gen_ru)}</div>
     <div class="theme fade" ${delay(.8)}>${esc(d.theme)}</div>
@@ -140,18 +194,21 @@ function render(d) {
     <div class="quote fade" ${delay(1.2)} id="quote"></div>
     <div class="nums">${d.lucky.map((n, i) => `<div class="num" style="animation-delay:${1.6 + i * .25}s">${n}</div>`).join("")}</div>
     <div class="color fade" ${delay(2.4)}>🎨 Колір дня: ${esc(d.color)}</div>
-    <h2>Сфери дня</h2>
+    <h2 class="rv">Сфери дня</h2>
     <div class="cards" id="cards">${SPHERES.map(([k, t]) =>
-      `<div class="card"><b>${t}${k === "power" ? ": " + esc(d.trait) : ""}</b>${esc(d[k])}</div>`).join("")}</div>
+      `<div class="card"><span class="ico">${t.split(" ")[0]}</span><b>${t.split(" ").slice(1).join(" ")}${k === "power" ? ": " + esc(d.trait) : ""}</b>${esc(d[k])}</div>`).join("")}</div>
     <div class="dots" id="dots">${SPHERES.map((_, i) => `<div class="dot${i ? "" : " on"}"></div>`).join("")}</div>
-    <h2>🃏 Карта дня</h2>
+    <h2 class="rv">🃏 Карта дня</h2>
     <div class="tarot" id="tarot"><div class="tarot-in">
       <div class="face back">✦</div><div class="face front">${esc(d.tarot_card)}</div></div></div>
     <div class="hint" id="hint">Торкніться, щоб відкрити карту</div>
     <div class="tarot-text" id="tarotText">${esc(d.tarot)}</div>
     <div class="wish">🌟 ${esc(d.wish)}</div>`;
 
+  if (d.p) portrait(d.p);
   typewrite(document.getElementById("quote"), d.quote);
+  const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add("in")), {threshold:.15});
+  document.querySelectorAll(".cards, .tarot, .wish, h2").forEach(el => { el.classList.add("rv"); io.observe(el); });
   stars(accent);
 
   const cards = document.getElementById("cards"), dots = [...document.querySelectorAll(".dot")];
