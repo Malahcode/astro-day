@@ -105,6 +105,28 @@
   @keyframes breathe { 50% { text-shadow:0 0 22px var(--accent); } }
   .numw { display:flex; flex-direction:column; align-items:center; gap:6px; }
   .numw small { font-size:11px; letter-spacing:.08em; text-transform:uppercase; opacity:.65; }
+  .progress { text-align:center; font-size:13px; letter-spacing:.06em; opacity:.8; margin:-4px 0 14px; }
+  .flips { display:flex; flex-direction:column; gap:14px; margin-bottom:26px; perspective:1200px; }
+  .fcard { border-radius:20px; cursor:pointer; transition:transform .35s ease-in, opacity .8s ease;
+           border:1.5px solid transparent; box-shadow:0 8px 30px rgba(0,0,0,.35);
+           background:linear-gradient(160deg, rgba(20,10,40,.88), rgba(10,5,25,.92)) padding-box,
+                      conic-gradient(from var(--a, 0deg), var(--accent), transparent 30%, var(--accent) 60%, transparent 85%, var(--accent)) border-box;
+           animation:spinborder 8s linear infinite; }
+  .fcard.turning { transform:rotateY(90deg); }
+  .fcard.open { animation:spinborder 8s linear infinite, unflip .45s cubic-bezier(.3,1.4,.5,1); }
+  @keyframes unflip { from { transform:rotateY(-90deg); } }
+  .fback { padding:22px 18px; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;
+           background:repeating-linear-gradient(45deg, transparent 0 12px, color-mix(in srgb, var(--accent) 7%, transparent) 12px 24px);
+           border-radius:18px; }
+  .fback b { font:700 21px "Cormorant Garamond", serif; color:var(--accent); }
+  .fback i { font-size:12px; opacity:.6; font-style:normal; letter-spacing:.05em; }
+  .fcard:not(.open) .fback .ico { animation:pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform:scale(1.12); filter:drop-shadow(0 0 18px var(--accent)); } }
+  .ffront { display:none; padding:18px; line-height:1.55; }
+  .ffront b { display:flex; align-items:center; gap:8px; font:700 20px "Cormorant Garamond", serif; margin-bottom:8px; color:var(--accent); }
+  .ico.sm { font-size:24px; margin:0; }
+  .fcard.open .fback { display:none; }
+  .fcard.open .ffront { display:block; }
 </style>
 </head>
 <body>
@@ -198,9 +220,12 @@ function render(d) {
     ${d.day_meaning ? `<div class="color fade" ${delay(2.3)}>Число дня ${d.lucky[0]} — ${esc(d.day_meaning)}</div>` : ""}
     <div class="color fade" ${delay(2.4)}>🎨 Колір дня: ${esc(d.color)}</div>
     <h2 class="rv">Сфери дня</h2>
-    <div class="cards" id="cards">${SPHERES.map(([k, t]) =>
-      `<div class="card"><span class="ico">${t.split(" ")[0]}</span><b>${t.split(" ").slice(1).join(" ")}${k === "power" ? ": " + esc(d.trait) : ""}</b>${esc(d[k])}</div>`).join("")}</div>
-    <div class="dots" id="dots">${SPHERES.map((_, i) => `<div class="dot${i ? "" : " on"}"></div>`).join("")}</div>
+    <div class="progress rv" id="progress">Відкрито 0 з ${SPHERES.length} ✨</div>
+    <div class="flips">${SPHERES.map(([k, t]) => `
+      <div class="fcard" data-k="${k}">
+        <div class="fback"><span class="ico">${t.split(" ")[0]}</span><b>${t.split(" ").slice(1).join(" ")}</b><i>торкніться, щоб відкрити</i></div>
+        <div class="ffront"><b><span class="ico sm">${t.split(" ")[0]}</span>${t.split(" ").slice(1).join(" ")}${k === "power" ? ": " + esc(d.trait) : ""}</b>${esc(d[k])}</div>
+      </div>`).join("")}</div>
     <h2 class="rv">🃏 Карта дня</h2>
     <div class="tarot" id="tarot"><div class="tarot-in">
       <div class="face back">✦</div><div class="face front">${esc(d.tarot_card)}</div></div></div>
@@ -211,15 +236,18 @@ function render(d) {
   if (d.p) portrait(d.p);
   typewrite(document.getElementById("quote"), d.quote);
   const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add("in")), {threshold:.15});
-  document.querySelectorAll(".cards, .tarot, .wish, h2").forEach(el => { el.classList.add("rv"); io.observe(el); });
+  document.querySelectorAll(".fcard, .tarot, .wish, h2, .progress").forEach(el => { el.classList.add("rv"); io.observe(el); });
   stars(accent);
 
-  const cards = document.getElementById("cards"), dots = [...document.querySelectorAll(".dot")];
-  let last = 0;
-  cards.addEventListener("scroll", () => {
-    const i = Math.round(cards.scrollLeft / cards.firstElementChild.offsetWidth);
-    if (i !== last) { dots[last].classList.remove("on"); dots[i] && dots[i].classList.add("on"); last = i; haptic("light"); }
-  });
+  let opened = 0; // карта переворачивается: до ребра (90°), меняем сторону, обратно — высота подстраивается под текст
+  document.querySelectorAll(".fcard").forEach(c => c.addEventListener("click", () => {
+    if (c.classList.contains("open") || c.classList.contains("turning")) return;
+    c.classList.add("turning"); haptic("medium");
+    setTimeout(() => { c.classList.add("open"); c.classList.remove("turning"); }, 350);
+    opened++;
+    document.getElementById("progress").textContent = opened === SPHERES.length
+      ? "Усі сфери відкрито — ви сьогодні неймовірна 👑" : `Відкрито ${opened} з ${SPHERES.length} ✨`;
+  }));
   document.getElementById("tarot").addEventListener("click", e => {
     const t = e.currentTarget; if (t.classList.contains("open")) return;
     t.classList.add("open"); haptic("heavy");
