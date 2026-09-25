@@ -78,8 +78,8 @@ const tg = window.Telegram && Telegram.WebApp;
 const haptic = s => tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-async function readDay() { // #d=<base64url(deflate-raw(json))>
-  const m = location.hash.match(/d=([\w-]+)/);
+async function readDay() { // ?d=<base64url(deflate-raw(json))>; в #… Telegram дописывает свои данные
+  const m = (location.search + location.hash).match(/[?&#]d=([\w-]+)/);
   if (!m) throw new Error("no data");
   const b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
   const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
