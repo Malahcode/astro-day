@@ -71,8 +71,9 @@ const PALETTES = { // variant -> [фон, глубина, акцент]
   1:["#2a1260","#07031a","#f5c86b"], 2:["#123a6b","#030a18","#bfe3ff"], 3:["#0b4a3e","#021210","#7fe0c0"],
   4:["#5a3f7a","#1a1030","#ffc6e6"], 5:["#2b2b2b","#050505","#e6e6e6"], 6:["#3a2a08","#0a0702","#ffcf5a"],
   7:["#5a120a","#140302","#ff8a3d"] };
-const SPHERES = [["love","💖 Стосунки"],["work","💼 Робота"],["money","💰 Гроші"],["health","🌿 Здоровʼя"],
-                 ["power","♌ Твоя сила"],["week","📅 Тиждень і місяць"]];
+const SPHERES = [["love","💞 Що шепоче серце?"],["work","🏡 Дім і мої справи"],["money","💰 Грошовий знак дня"],
+                 ["health","🌿 Сили для мами"],["power","🦁 Моя суперсила"],["dream","🚀 Час для себе й мрії"],
+                 ["week","🔮 Що чекає далі?"]];
 const tg = window.Telegram && Telegram.WebApp;
 const haptic = s => tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
